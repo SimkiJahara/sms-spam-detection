@@ -1,0 +1,4 @@
+sms_spam_env/
+*.pk1
+__pycache__/
+*.pyc
