@@ -9,7 +9,8 @@ from imblearn.over_sampling import SMOTE
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, VotingClassifier
+from xgboost import XGBClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 import time
 import pickle
@@ -23,7 +24,7 @@ nltk.download('wordnet')
 
 # Load dataset
 try:
-    data = pd.read_csv("~/sms_spam_project/SMSSpamCollection.txt", sep='\t', names=['label', 'message'], encoding='latin1')
+    data = pd.read_csv(os.path.expanduser("~/sms_spam_project/SMSSpamCollection.txt"), sep='\t', names=['label', 'message'], encoding='latin1')
 except FileNotFoundError:
     print("Dataset not found. Please place SMSSpamCollection.txt in ~/sms_spam_project")
     exit(1)
@@ -66,7 +67,7 @@ def evaluate_model(model, model_name):
         'Training Time (s)': end_time - start_time
     })
 
-# Models
+# Models (excluding XGBoost from VotingClassifier)
 models = [
     ('Naive Bayes', MultinomialNB()),
     ('SVM', SVC(kernel='rbf', C=1.0, probability=True, class_weight='balanced')),
@@ -76,6 +77,14 @@ models = [
 
 for name, model in models:
     evaluate_model(model, name)
+
+# Evaluate XGBoost separately
+xgboost_model = XGBClassifier(use_label_encoder=False, eval_metric='logloss', random_state=42)
+evaluate_model(xgboost_model, 'XGBoost')
+
+# VotingClassifier without XGBoost
+voting_clf = VotingClassifier(estimators=models, voting='soft')
+evaluate_model(voting_clf, 'Ensemble Voting')
 
 # Results
 results_df = pd.DataFrame(results)
@@ -92,8 +101,8 @@ print("\nModel Performance Comparison:")
 print(results_df.sort_values(by='F1-Score', ascending=False))
 results_df.to_csv(os.path.expanduser('~/sms_spam_project/model_performance.csv'), index=False)
 
-# Save best model (SVM)
-model = SVC(kernel='rbf', C=1.0, probability=True, class_weight='balanced')
+# Save best model (Random Forest, based on results)
+model = RandomForestClassifier(n_estimators=100, random_state=42)
 model.fit(X_train_bal, y_train_bal)
 pickle.dump(model, open(os.path.expanduser('~/sms_spam_project/spam_model.pkl'), 'wb'))
 pickle.dump(vectorizer, open(os.path.expanduser('~/sms_spam_project/vectorizer.pkl'), 'wb'))
