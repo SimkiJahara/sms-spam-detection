@@ -9,7 +9,8 @@ from imblearn.over_sampling import SMOTE
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, VotingClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, VotingClassifier, AdaBoostClassifier
+from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from xgboost import XGBClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
@@ -81,7 +82,9 @@ models = [
     ('Logistic Regression', LogisticRegression(max_iter=1000, class_weight='balanced')),
     ('Random Forest', RandomForestClassifier(n_estimators=100, random_state=42)),
     ('KNN', KNeighborsClassifier(n_neighbors=3, metric='cosine')),
-    ('Gradient Boosting', GradientBoostingClassifier(n_estimators=100, random_state=42))
+    ('Gradient Boosting', GradientBoostingClassifier(n_estimators=100, random_state=42)),
+    ('Decision Tree', DecisionTreeClassifier(random_state=42)),
+    ('AdaBoost', AdaBoostClassifier(n_estimators=100, random_state=42))
 ]
 
 for name, model in models:
