@@ -9,9 +9,11 @@ from imblearn.over_sampling import SMOTE
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier, VotingClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, VotingClassifier
+from sklearn.neighbors import KNeighborsClassifier
 from xgboost import XGBClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from sklearn.decomposition import PCA
 import time
 import pickle
 import os
@@ -50,12 +52,17 @@ X_train, X_test, y_train, y_test = train_test_split(X_vec, y, test_size=0.2, ran
 smote = SMOTE(random_state=42)
 X_train_bal, y_train_bal = smote.fit_resample(X_train, y_train)
 
+# Apply PCA for KNN
+pca = PCA(n_components=100, random_state=42)
+X_train_knn = pca.fit_transform(X_train_bal.toarray())
+X_test_knn = pca.transform(X_test.toarray())
+
 # Evaluate models
 results = []
 
-def evaluate_model(model, model_name):
+def evaluate_model(model, model_name, X_train=X_train_bal, X_test=X_test):
     start_time = time.time()
-    model.fit(X_train_bal, y_train_bal)
+    model.fit(X_train, y_train_bal)
     y_pred = model.predict(X_test)
     end_time = time.time()
     results.append({
@@ -72,14 +79,19 @@ models = [
     ('Naive Bayes', MultinomialNB()),
     ('SVM', SVC(kernel='rbf', C=1.0, probability=True, class_weight='balanced')),
     ('Logistic Regression', LogisticRegression(max_iter=1000, class_weight='balanced')),
-    ('Random Forest', RandomForestClassifier(n_estimators=100, random_state=42))
+    ('Random Forest', RandomForestClassifier(n_estimators=100, random_state=42)),
+    ('KNN', KNeighborsClassifier(n_neighbors=3, metric='cosine')),
+    ('Gradient Boosting', GradientBoostingClassifier(n_estimators=100, random_state=42))
 ]
 
 for name, model in models:
-    evaluate_model(model, name)
+    if name == 'KNN':
+        evaluate_model(model, name, X_train_knn, X_test_knn)
+    else:
+        evaluate_model(model, name)
 
 # Evaluate XGBoost separately
-xgboost_model = XGBClassifier(use_label_encoder=False, eval_metric='logloss', random_state=42)
+xgboost_model = XGBClassifier(eval_metric='logloss', random_state=42)
 evaluate_model(xgboost_model, 'XGBoost')
 
 # VotingClassifier without XGBoost
@@ -101,7 +113,7 @@ print("\nModel Performance Comparison:")
 print(results_df.sort_values(by='F1-Score', ascending=False))
 results_df.to_csv(os.path.expanduser('~/sms_spam_project/model_performance.csv'), index=False)
 
-# Save best model (Random Forest, based on results)
+# Save best model (Random Forest, based on previous results)
 model = RandomForestClassifier(n_estimators=100, random_state=42)
 model.fit(X_train_bal, y_train_bal)
 pickle.dump(model, open(os.path.expanduser('~/sms_spam_project/spam_model.pkl'), 'wb'))
