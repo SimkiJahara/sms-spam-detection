@@ -152,7 +152,7 @@ evaluate_model(xgboost_model, 'XGBoost')
 # VotingClassifier (exclude LinearRegression and Perceptron)
 voting_estimators = [(name, model) for name, model in models if name not in ['KNN (PCA)', 'KNN (t-SNE)', 'Linear Regression', 'Perceptron']]
 voting_clf = VotingClassifier(estimators=voting_estimators, voting='soft')
-evaluate_model(voting_clf, 'Ensemble Voting', X_train_bal_dense, X_test_dense)  # Use dense arrays
+evaluate_model(voting_clf, 'Ensemble Voting', X_train_bal_dense, X_test_dense)
 
 # Results
 results_df = pd.DataFrame(results)
@@ -167,6 +167,18 @@ def classify_model(row):
 results_df['Performance Class'] = results_df.apply(classify_model, axis=1)
 print("\nModel Performance Comparison:")
 print(results_df.sort_values(by='F1-Score', ascending=False))
+
+# F1-Score bar chart
+plt.figure(figsize=(10, 6))
+plt.bar(results_df['Model'], results_df['F1-Score'], color='skyblue')
+plt.xticks(rotation=45, ha='right')
+plt.xlabel('Model')
+plt.ylabel('F1-Score')
+plt.title('F1-Score Comparison of SMS Spam Detection Models')
+plt.tight_layout()
+plt.savefig(os.path.expanduser('~/sms_spam_project/f1_score_plot.png'))
+plt.close()
+
 results_df.to_csv(os.path.expanduser('~/sms_spam_project/model_performance.csv'), index=False)
 
 # Save best model (Random Forest)
@@ -174,4 +186,5 @@ model = RandomForestClassifier(n_estimators=100, random_state=42)
 model.fit(X_train_bal, y_train_bal)
 pickle.dump(model, open(os.path.expanduser('~/sms_spam_project/spam_model.pkl'), 'wb'))
 pickle.dump(vectorizer, open(os.path.expanduser('~/sms_spam_project/vectorizer.pkl'), 'wb'))
+
 
